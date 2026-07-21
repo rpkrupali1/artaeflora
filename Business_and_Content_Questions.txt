@@ -1,0 +1,55 @@
+  Business Identity
+  1. What is the business name? Do you have a logo, brand colors, or any visual identity already?
+-->Business name is ArtaeFlora. Logo has placed in the folder with file name "logo.png"
+
+  2. What city/region are you based in? (important for classes, events, and local SEO)
+--> Naperville, IL, USA
+
+  3. Do you have a tagline or mission statement?
+--> I do not but something related like this: i want to be unique customized gifting experience for loved once when it comes to product and for classes I want people to forget stress and make something productive beautiful piece or art either for gifting or for their own home  or take workshops for the events
+
+  Products
+  4. How many products do you currently have to list? Rough number is fine.
+--> I dont have exact list but Categories like Candles handmade and within candles we have multiple categories, paintings only based on order customization but I can share reference pictures,
+
+
+  5. What occasions do you cater to?
+--> Diwali, birthdays, weddings, Rakhi, corporate gifts, Christmas 
+  6. Do you sell online with shipping, or is it local pickup/delivery only?
+--> Yes I will be able to ship as well local pickup
+  7. Do you want online payments (Razorpay/UPI/etc.) or inquiry-based ordering (WhatsApp/call)?
+-->yes online payment but we can do WhatsApp enquiry as well
+  8. What's the price range of your products?
+--> everything is varies so much
+
+  Classes
+  9. Are classes held at a fixed studio location, at the customer's venue, or online?
+all
+  10. Do you want online booking/registration for classes, or WhatsApp/call-based inquiries?
+yes
+  11. Do classes have fixed schedules, or are they on-demand/by appointment?
+both
+  12. What's the typical class size, duration, and price range?
+10 ppl max
+
+  Events
+  13. For events — do clients hire you to run art activities at their venue (corporate events, parties, etc.)? Yes
+  14. Do you want a form/inquiry flow for event bookings, or just a contact method? both
+
+  Content & Media
+  15. Do you have product photos and class/event photos ready to use? yes somehwat
+
+  16. Do you have any social media pages (Instagram, Facebook) you want linked?
+Yes all names by artaeFlora
+  17. Do you need a gallery/portfolio section showcasing past work?
+yes
+
+  Technical Questions
+
+  18. Do you have a domain name already? If so, what is it? no I dont
+  19. Do you have any hosting preference, or should I recommend something budget-friendly for a new business? yes please recommend
+  20. Do you need an admin panel to add/edit products and classes yourself, or is it okay if I build a static/semi-static site you
+  can update with my help? semi static and build admin panel for me
+  21. Do you want a full e-commerce cart + checkout, or a catalog-style site where customers inquire via WhatsApp/call?yes
+  22. Any preference on tech stack, or should I recommend based on your needs? nodejs
+  23. Do you need multilingual support (English + Hindi, etc.)?nope, just English

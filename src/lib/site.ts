@@ -1,0 +1,31 @@
+export const site = {
+  name: "ArtaeFlora",
+  descriptor: "Unique Handmades",
+  tagline: "Handmade with love, as unique as your bond.",
+  by: "Krupali & Ishna",
+  city: "Naperville, IL",
+  email: "artaeflora@gmail.com",
+  phone: "224-715-0463",
+  phoneHref: "tel:+12247150463",
+  whatsappNumber: "+1 (313) 355-4447",
+  whatsappHref: "https://wa.me/13133554447",
+  instagram: "https://www.instagram.com/artaeflora/",
+  pinterest: "https://www.pinterest.com/artaeflora/",
+  facebook: "https://www.facebook.com/artaeflora",
+  announcement:
+    "Free local pickup in Naperville, IL · Custom orders open for Rakhi & Diwali",
+  occasions: [
+    "Diwali",
+    "Birthdays",
+    "Weddings",
+    "Rakhi",
+    "Corporate Gifts",
+    "Christmas",
+  ],
+  punchlines: {
+    classes: "Unplug. Create. Take home something beautiful.",
+    paintings: "Your story, painted by hand.",
+    events: "We bring the art studio to your celebration.",
+    occasions: "A handmade touch for every celebration — Diwali to Christmas.",
+  },
+} as const;
