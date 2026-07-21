@@ -1,0 +1,143 @@
+// ArtaeFlora data model.
+// Dev uses SQLite (file:./dev.db); production uses Postgres (Neon).
+// Keep this schema portable: no enums or array columns — string fields
+// with documented allowed values instead.
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model AdminUser {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String?
+  createdAt    DateTime @default(now())
+}
+
+model Category {
+  id        String     @id @default(cuid())
+  name      String
+  slug      String     @unique
+  parentId  String?
+  parent    Category?  @relation("Subcategories", fields: [parentId], references: [id])
+  children  Category[] @relation("Subcategories")
+  sortOrder Int        @default(0)
+  products  Product[]
+}
+
+model Product {
+  id          String         @id @default(cuid())
+  name        String
+  slug        String         @unique
+  description String
+  // null when inquiryOnly — price discussed per order
+  priceCents  Int?
+  inquiryOnly Boolean        @default(false)
+  // comma-separated occasion tags, e.g. "Diwali,Weddings"
+  occasions   String         @default("")
+  featured    Boolean        @default(false)
+  active      Boolean        @default(true)
+  categoryId  String
+  category    Category       @relation(fields: [categoryId], references: [id])
+  images      ProductImage[]
+  orderItems  OrderItem[]
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+}
+
+model ProductImage {
+  id        String  @id @default(cuid())
+  url       String
+  alt       String?
+  sortOrder Int     @default(0)
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
+
+model Class {
+  id           String   @id @default(cuid())
+  title        String
+  slug         String   @unique
+  description  String
+  // STUDIO | VENUE | ONLINE
+  locationType String   @default("STUDIO")
+  scheduleText String?
+  priceCents   Int?
+  capacity     Int      @default(10)
+  // false = not shown publicly; /classes shows "coming soon" when none active
+  active       Boolean  @default(false)
+  createdAt    DateTime @default(now())
+}
+
+model Order {
+  id              String      @id @default(cuid())
+  stripeSessionId String      @unique
+  customerName    String?
+  customerEmail   String?
+  // SHIPPING | PICKUP
+  fulfillment     String      @default("PICKUP")
+  // PAID | FULFILLED
+  status          String      @default("PAID")
+  totalCents      Int
+  createdAt       DateTime    @default(now())
+  items           OrderItem[]
+}
+
+model OrderItem {
+  id             String   @id @default(cuid())
+  orderId        String
+  order          Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId      String?
+  product        Product? @relation(fields: [productId], references: [id])
+  // snapshot at purchase time — survives product edits/deletes
+  productName    String
+  quantity       Int
+  unitPriceCents Int
+}
+
+model Inquiry {
+  id        String   @id @default(cuid())
+  // PAINTING | EVENT | CLASS | GENERAL
+  type      String
+  name      String
+  email     String
+  phone     String?
+  message   String
+  // free-form extras, e.g. event date / headcount / venue
+  details   String?
+  handled   Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model GalleryItem {
+  id        String   @id @default(cuid())
+  url       String
+  caption   String?
+  // candles | paintings | classes | events
+  tag       String   @default("candles")
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+}
+
+model HeroSlide {
+  id        String   @id @default(cuid())
+  // IMAGE | VIDEO
+  mediaType String   @default("IMAGE")
+  url       String
+  caption   String?
+  sortOrder Int      @default(0)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
+model SiteSetting {
+  key   String @id
+  value String
+}
