@@ -15,9 +15,9 @@ flowchart LR
     end
 
     subgraph App["Next.js App (Node.js) — Vercel/Render"]
-        SSR["Server components<br/>(pages, data fetching)"]
-        API["API routes<br/>/api/checkout · /api/inquiries<br/>/api/admin/* · /api/upload · /api/webhooks/stripe"]
-        AUTH["NextAuth (credentials)<br/>protects /admin + /api/admin/*"]
+        SSR["Server components<br/>(read layer: pages query the DB<br/>on the server, browser gets HTML)"]
+        API["Server actions (write layer:<br/>inquiries, admin CRUD) + route handlers<br/>/api/checkout · /api/upload · /api/webhooks/stripe"]
+        AUTH["NextAuth (credentials)<br/>protects /admin + admin actions"]
     end
 
     subgraph Data["Data & Services"]
@@ -43,6 +43,7 @@ flowchart LR
 
 - **Single app** — public site, admin, and API in one Next.js codebase; one deploy, one free-tier host.
 - **Server components by default** — product/gallery/class data is fetched on the server (good SEO for local search); the cart is the main client-side piece.
+- **No separate REST layer for our own UI** — reads happen inside server components (SQL never reaches the browser); mutations go through **server actions** (`src/app/actions.ts`), which Next.js compiles into CSRF-protected POST endpoints with server-side validation. Explicit `/api` route handlers exist only where the caller is not our React code: the Stripe webhook (external server), checkout session creation, and file upload. If a mobile app or third-party integration ever needs data, add REST/GraphQL routes then — they reuse the same Prisma queries.
 - **Stripe Checkout (hosted page)** — card data never touches our app; we only create a session and receive a webhook. No PCI burden.
 - **Images in Cloudinary, not the database** — DB stores URLs only; Cloudinary resizes/optimizes. Local-disk fallback in development.
 - **Inquiry-first for custom work** — paintings/events/classes create `Inquiry` rows (plus WhatsApp deep links); only priced products go through Stripe.
@@ -172,15 +173,16 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     actor C as Customer
-    participant S as Paintings/Events/Contact page
-    participant API as /api/inquiries
+    participant S as Paintings/Events/Classes/Contact page
+    participant SA as submitInquiry server action
     participant DB as Postgres
     actor O as Owner
 
     C->>S: Fill inquiry form (or tap WhatsApp button)
-    S->>API: POST {type, name, email, phone, message, details}
-    API->>DB: Insert Inquiry (handled = false)
-    API-->>C: "Thanks — we'll get back to you" confirmation
+    S->>SA: Form POST (Next-generated endpoint, CSRF-protected)
+    SA->>SA: Validate (required fields, email format, type allow-list)
+    SA->>DB: Insert Inquiry (handled = false)
+    SA-->>C: "Thanks — we'll get back to you" confirmation
     O->>DB: Admin → Inquiries inbox (new items highlighted)
     O->>C: Replies via email / WhatsApp / call
     O->>DB: Mark inquiry handled
@@ -192,16 +194,16 @@ sequenceDiagram
 sequenceDiagram
     actor O as Owner
     participant A as /admin (NextAuth-protected)
-    participant API as /api/admin/* + /api/upload
+    participant API as admin server actions + /api/upload
     participant CLD as Cloudinary
     participant DB as Postgres
     participant P as Public site
 
     O->>A: Log in (email + password, bcrypt-verified)
     O->>A: Create/edit product, class, category, or gallery item
-    A->>API: Upload photos
+    A->>API: Upload photos (route handler — multipart)
     API->>CLD: Store image, get optimized URL
-    A->>API: Save record (with image URLs)
+    A->>API: Save record via server action (auth-checked, validated)
     API->>DB: Insert/update row
     P->>DB: Next visitor request re-fetches — listing appears/updates immediately
 ```
