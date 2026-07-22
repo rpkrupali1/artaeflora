@@ -40,12 +40,33 @@ export async function POST(req: Request) {
       where: { id: { in: requested.map((r) => r.i) } },
     });
 
+    // Address field location varies across Stripe API versions.
+    const shippingDetails =
+      (session as { collected_information?: { shipping_details?: { name?: string; address?: Stripe.Address } } })
+        .collected_information?.shipping_details ??
+      (session as { shipping_details?: { name?: string; address?: Stripe.Address } }).shipping_details;
+    const addr = shippingDetails?.address;
+    const shippingAddress = addr
+      ? [
+          shippingDetails?.name,
+          addr.line1,
+          addr.line2,
+          `${addr.city ?? ""}, ${addr.state ?? ""} ${addr.postal_code ?? ""}`.trim(),
+          addr.country,
+        ]
+          .filter(Boolean)
+          .join("\n")
+      : null;
+
     await db.order.create({
       data: {
         stripeSessionId: session.id,
         customerName: session.customer_details?.name ?? null,
         customerEmail: session.customer_details?.email ?? null,
+        customerPhone: session.customer_details?.phone ?? null,
         fulfillment: session.metadata?.fulfillment === "SHIPPING" ? "SHIPPING" : "PICKUP",
+        shippingAddress,
+        shippingCents: session.total_details?.amount_shipping ?? 0,
         status: "PAID",
         totalCents: session.amount_total ?? 0,
         items: {

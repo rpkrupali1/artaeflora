@@ -105,6 +105,7 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) — system overview, data model (ERD), an
 
 - **Customer accounts / user management** — registration, login, password reset (requires an email service), order history. Launch uses guest checkout; the header user icon links to a "coming soon" sign-in page in the meantime.
 - **Live-chat widget** (e.g., Tawk.to) — WhatsApp is the chat channel at launch; revisit based on customer behavior.
+- **Live carrier shipping rates + label printing via Shippo** — launch uses an admin-configurable flat rate (`SiteSetting.shippingFlatCents`, optional free-shipping threshold); Shippo needs per-product weight/dimensions and replaces only `src/lib/shipping.ts` internals.
 - Class online booking with seat caps + payment, PayPal, email notifications, reviews.
 
 ## Verification

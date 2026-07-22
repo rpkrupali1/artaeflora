@@ -1,10 +1,9 @@
-"use client";
+﻿"use client";
 
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import { useCart } from "@/lib/cart";
-import { site } from "@/lib/site";
 
 const links = [
   { href: "/shop", label: "Shop" },
@@ -75,7 +74,7 @@ function CartIcon() {
   );
 }
 
-export default function Header() {
+export default function Header({ announcement }: { announcement?: string }) {
   const [open, setOpen] = useState(false);
   const close = () => setOpen(false);
 
@@ -94,9 +93,9 @@ export default function Header() {
         </Link>
 
         <div className="hidden flex-col items-stretch gap-3 lg:flex">
-          {site.announcement && (
+          {announcement && (
             <div className="rounded-full bg-sage px-6 py-2 text-center text-sm font-medium text-leaf-dark">
-              {site.announcement}
+              {announcement}
             </div>
           )}
           <div className="flex items-center justify-between gap-4 px-2">
@@ -147,9 +146,9 @@ export default function Header() {
         </div>
       </div>
 
-      {site.announcement && (
+      {announcement && (
         <div className="bg-sage px-4 py-1.5 text-center text-xs font-medium text-leaf-dark lg:hidden">
-          {site.announcement}
+          {announcement}
         </div>
       )}
 
@@ -177,3 +176,4 @@ export default function Header() {
     </header>
   );
 }
+

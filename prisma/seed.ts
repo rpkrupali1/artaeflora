@@ -222,6 +222,11 @@ async function main() {
     announcementText:
       "Free local pickup in Naperville, IL · Custom orders open for Rakhi & Diwali",
     announcementEnabled: "true",
+    // Flat US shipping in cents; admin-editable (step 5). Phase 2: live
+    // carrier rates via Shippo.
+    shippingFlatCents: "800",
+    // Free shipping at/above this subtotal (cents); empty string = disabled.
+    freeShippingThresholdCents: "",
   };
   for (const [key, value] of Object.entries(settings)) {
     await db.siteSetting.upsert({ where: { key }, update: {}, create: { key, value } });

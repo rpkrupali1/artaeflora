@@ -8,12 +8,24 @@ import { useCart } from "@/lib/cart";
 import { formatPrice } from "@/lib/format";
 import { site } from "@/lib/site";
 
-export default function CartPage() {
+export default function CartView({
+  shippingFlatCents,
+  freeThresholdCents,
+}: {
+  shippingFlatCents: number;
+  freeThresholdCents: number | null;
+}) {
   const { items, subtotalCents, setQuantity, remove } = useCart();
   const [fulfillment, setFulfillment] = useState<"PICKUP" | "SHIPPING">("PICKUP");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+
+  const freeShipping =
+    freeThresholdCents !== null && subtotalCents >= freeThresholdCents;
+  const shippingCents =
+    fulfillment === "SHIPPING" ? (freeShipping ? 0 : shippingFlatCents) : 0;
+  const totalCents = subtotalCents + shippingCents;
 
   async function checkout() {
     setSubmitting(true);
@@ -147,13 +159,33 @@ export default function CartPage() {
               onChange={() => setFulfillment("SHIPPING")}
               className="accent-leaf"
             />
-            Ship to me (US) — cost confirmed after order
+            Ship to me (US) —{" "}
+            {freeShipping ? "free" : formatPrice(shippingFlatCents)}
+            {freeThresholdCents !== null && !freeShipping && (
+              <span className="text-charcoal/50">
+                (free over {formatPrice(freeThresholdCents)})
+              </span>
+            )}
           </label>
         </div>
 
-        <div className="mt-6 flex items-center justify-between border-t border-sage pt-4">
-          <span className="text-charcoal/70">Subtotal</span>
-          <span className="text-xl font-semibold text-leaf">{formatPrice(subtotalCents)}</span>
+        <div className="mt-6 space-y-2 border-t border-sage pt-4 text-sm">
+          <div className="flex items-center justify-between">
+            <span className="text-charcoal/70">Subtotal</span>
+            <span className="font-medium">{formatPrice(subtotalCents)}</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-charcoal/70">
+              {fulfillment === "SHIPPING" ? "Shipping" : "Pickup"}
+            </span>
+            <span className="font-medium">
+              {shippingCents === 0 ? "Free" : formatPrice(shippingCents)}
+            </span>
+          </div>
+          <div className="flex items-center justify-between border-t border-sage pt-2">
+            <span className="font-semibold text-charcoal">Total</span>
+            <span className="text-xl font-semibold text-leaf">{formatPrice(totalCents)}</span>
+          </div>
         </div>
 
         {error && (
@@ -169,7 +201,8 @@ export default function CartPage() {
           {submitting ? "Preparing checkout…" : "Checkout securely"}
         </button>
         <p className="mt-3 text-center text-xs text-charcoal/50">
-          Cards, Apple Pay & Google Pay via Stripe · or{" "}
+          Name, email &amp; address are collected on the secure Stripe payment page ·
+          Cards, Apple Pay &amp; Google Pay · or{" "}
           <a href={site.whatsappHref} target="_blank" rel="noopener noreferrer" className="underline">
             order on WhatsApp
           </a>

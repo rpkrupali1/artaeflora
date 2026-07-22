@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { db } from "@/lib/db";
+import { getShippingConfig, shippingCentsFor } from "@/lib/shipping";
 
 // POST /api/checkout
 // Body: { items: [{ productId, quantity }], fulfillment: "PICKUP" | "SHIPPING" }
@@ -56,10 +57,12 @@ export async function POST(req: Request) {
     );
   }
 
-  const totalCents = lines.reduce(
+  const subtotalCents = lines.reduce(
     (sum, l) => sum + (l.product.priceCents ?? 0) * l.quantity,
     0
   );
+  const shippingConfig = await getShippingConfig();
+  const shippingCents = shippingCentsFor(subtotalCents, fulfillment, shippingConfig);
 
   // ---- Mock mode (no Stripe account configured yet) ---------------------
   if (!process.env.STRIPE_SECRET_KEY) {
@@ -68,7 +71,8 @@ export async function POST(req: Request) {
         stripeSessionId: `mock_${crypto.randomUUID()}`,
         fulfillment,
         status: "PAID",
-        totalCents,
+        shippingCents,
+        totalCents: subtotalCents + shippingCents,
         customerName: "Mock checkout (no Stripe keys)",
         items: {
           create: lines.map((l) => ({
@@ -102,8 +106,20 @@ export async function POST(req: Request) {
         },
       },
     })),
+    phone_number_collection: { enabled: true },
     ...(fulfillment === "SHIPPING"
-      ? { shipping_address_collection: { allowed_countries: ["US"] } }
+      ? {
+          shipping_address_collection: { allowed_countries: ["US"] as const },
+          shipping_options: [
+            {
+              shipping_rate_data: {
+                display_name: shippingCents === 0 ? "Free US shipping" : "US shipping",
+                type: "fixed_amount" as const,
+                fixed_amount: { amount: shippingCents, currency: "usd" },
+              },
+            },
+          ],
+        }
       : {}),
     metadata: {
       fulfillment,

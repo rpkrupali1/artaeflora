@@ -1,8 +1,5 @@
 import type { Metadata } from "next";
 import { Caveat, Great_Vibes, Quicksand } from "next/font/google";
-import Footer from "@/components/Footer";
-import Header from "@/components/Header";
-import WhatsAppButton from "@/components/WhatsAppButton";
 import { CartProvider } from "@/lib/cart";
 import { site } from "@/lib/site";
 import "./globals.css";
@@ -42,12 +39,7 @@ export default function RootLayout({
       className={`${quicksand.variable} ${greatVibes.variable} ${caveat.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col">
-        <CartProvider>
-          <Header />
-          <main className="flex-1">{children}</main>
-          <Footer />
-          <WhatsAppButton />
-        </CartProvider>
+        <CartProvider>{children}</CartProvider>
       </body>
     </html>
   );

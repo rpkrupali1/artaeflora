@@ -46,6 +46,23 @@ async function main() {
     `   items: ${order.items.map((i) => `${i.productName} x${i.quantity} @${i.unitPriceCents}`).join(", ")}`
   );
 
+  // 1b. shipping order: total must include the flat shipping rate
+  const ship = await post({
+    items: [{ productId: candle.id, quantity: 1 }],
+    fulfillment: "SHIPPING",
+  });
+  const shipOrderId = new URL(BASE + ship.data.url).searchParams.get("order");
+  const shipOrder = await db.order.findUniqueOrThrow({ where: { id: shipOrderId! } });
+  const settings = await db.siteSetting.findUniqueOrThrow({ where: { key: "shippingFlatCents" } });
+  const flat = Number.parseInt(settings.value, 10);
+  const expectedShipTotal = (candle.priceCents ?? 0) + flat;
+  console.log(
+    `1b. shipping order: total ${shipOrder.totalCents} (expected ${expectedShipTotal}), shippingCents ${shipOrder.shippingCents} — ${
+      shipOrder.totalCents === expectedShipTotal && shipOrder.shippingCents === flat ? "PASS" : "FAIL"
+    }`
+  );
+  await db.order.delete({ where: { id: shipOrder.id } });
+
   // 2. inquiry-only product must be rejected
   const inq = await post({ items: [{ productId: inquiryOnly.id, quantity: 1 }], fulfillment: "PICKUP" });
   console.log(`2. inquiry-only rejected: ${inq.status} — ${inq.status === 409 ? "PASS" : "FAIL"}`);

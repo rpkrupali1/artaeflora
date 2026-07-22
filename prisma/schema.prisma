@@ -81,8 +81,13 @@ model Order {
   stripeSessionId String      @unique
   customerName    String?
   customerEmail   String?
+  customerPhone   String?
   // SHIPPING | PICKUP
   fulfillment     String      @default("PICKUP")
+  // formatted mailing address (from Stripe checkout) when fulfillment = SHIPPING
+  shippingAddress String?
+  // shipping charged at checkout, included in totalCents
+  shippingCents   Int         @default(0)
   // PAID | FULFILLED
   status          String      @default("PAID")
   totalCents      Int

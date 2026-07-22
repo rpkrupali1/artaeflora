@@ -47,6 +47,9 @@ async function main() {
     SELECT table_name FROM information_schema.tables
     WHERE table_schema = 'public' ORDER BY table_name`;
   console.log("Tables created:", tables.map((t) => t.table_name).join(", "));
+
+  console.log("Regenerating Prisma client ...");
+  execSync("npx prisma generate", { stdio: "inherit" });
 }
 
 main().catch((e) => {
