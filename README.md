@@ -1,36 +1,85 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ArtaeFlora — artaeflora.com
+
+> Handmade with love, as unique as your bond.
+
+Website for **ArtaeFlora** (Naperville, IL) — handmade clay flowers, candles, custom paintings, art classes, and event workshops by Krupali & Ishna. Public shop + inquiry pages with an admin panel for managing products, classes, gallery, hero slides, and orders.
+
+📋 [PLAN.md](PLAN.md) — approved feature plan and design system
+🏗️ [ARCHITECTURE.md](ARCHITECTURE.md) — system diagrams, data model (ERD), request flows, image strategy
+
+## Tech Stack
+
+| Layer | Choice |
+|---|---|
+| Framework | Next.js 16 (App Router, TypeScript, Turbopack) |
+| Styling | Tailwind CSS v4 (brand tokens in `src/app/globals.css`) |
+| Database | Postgres on [Neon](https://neon.tech) via Prisma 6 + Neon serverless driver (HTTPS) |
+| Payments | Stripe Checkout *(step 4)* |
+| Auth (admin) | NextAuth credentials *(step 5)* |
+| Images | Cloudinary (prod) / `public/uploads` (dev) *(step 5)* |
 
 ## Getting Started
 
-First, run the development server:
+Prereqs: Node 22+, npm, a Neon database (free tier).
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+```powershell
+git clone <repo> && cd artaeflora
+npm install
+copy .env.example .env     # then fill in DATABASE_URL (Neon connection string)
+npm run db:push:http       # create tables (see network note below)
+npm run db:seed            # sample categories/products/gallery + admin user
+npm run dev                # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Secrets live only in `.env` (git-ignored). Never commit connection strings or keys; `.env.example` documents every variable.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Scripts
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Command | What it does |
+|---|---|
+| `npm run dev` | Dev server at http://localhost:3000 (first page load compiles, ~5s) |
+| `npm run build` / `start` | Production build / serve |
+| `npm run db:push:http` | ⚠️ **Destructive** schema push over HTTPS: drops + recreates all tables from `prisma/schema.prisma`. Dev only — always `db:seed` after |
+| `npm run db:push` | Standard Prisma push — only works on networks where TCP 5432 is open |
+| `npm run db:seed` | Seed sample data (idempotent — safe to re-run) |
+| `npm run db:query` | Query playground: edit `scripts/query.ts`, run, learn Prisma |
+| `npm run db:studio` | Prisma Studio GUI — needs TCP 5432 (blocked on corp networks → use the [Neon Console](https://console.neon.tech) Tables/SQL Editor instead) |
 
-## Learn More
+## Corporate-Network Notes
 
-To learn more about Next.js, take a look at the following resources:
+Two constraints this repo already handles — don't fight them:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. **npm 7-day cool-off** — the Artifactory registry blocks package versions published <7 days ago. The project `.npmrc` pins resolution with `before=`, so installs just work (~1 week behind latest). Bump the date occasionally.
+2. **Outbound TCP 5432 blocked** — the app talks to Neon over **HTTPS (port 443)** via `@neondatabase/serverless` + Prisma driver adapter (`src/lib/db.ts`). This is also the recommended setup for serverless hosting, so dev and prod match. Schema changes use `db:push:http` (generates DDL locally, applies over HTTPS).
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Project Structure
 
-## Deploy on Vercel
+```
+brand-assets/        Original logo + business cards (reference only, never served)
+docs/                Business questionnaire and reference docs
+prisma/              schema.prisma, seed.ts
+public/brand/        Web-ready transparent logos
+public/hero/         Home hero slides (admin-managed from step 5)
+public/products/     Placeholder product images until real photos are uploaded
+scripts/             query.ts (playground), push-http.ts, test-neon.ts
+src/app/             Pages (App Router) + globals.css (brand theme tokens)
+src/components/      Header, Footer, Hero, WhatsAppButton, …
+src/lib/             db.ts (Prisma + Neon adapter), site.ts (business facts: tagline,
+                     contacts, socials, announcement — edit once, changes everywhere)
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Build Progress
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- [x] **Step 1 — Scaffold + branding**: theme from business cards (olive/sage/daisy/cream), header with logo + announcement pill, rotating photo hero, footer, WhatsApp button
+- [x] **Step 2 — Database**: 11-table schema on Neon Postgres, seeded (10 products, 11 categories, gallery, hero slides, settings, admin user)
+- [ ] **Step 3 — Public pages**: shop, product detail, search, paintings, classes, events, gallery, about, contact + header icons (search/user/cart)
+- [ ] **Step 4 — Cart + Stripe checkout** (test mode)
+- [ ] **Step 5 — Admin panel**: products/categories/classes/gallery/hero/settings CRUD, orders, inquiries, image uploads
+- [ ] **Step 6 — SEO + polish**: metadata, JSON-LD, sitemap, favicon
+- [ ] **Step 7 — Deployment guide**: Neon prod branch, Cloudinary, Stripe live keys, Vercel/Render, artaeflora.com domain
+
+**Phase 2 (post-launch):** customer accounts + order history, class online booking with seat caps, PayPal, live-chat widget, email notifications, reviews.
+
+## Admin
+
+Seeded admin login: `artaeflora@gmail.com` — password comes from `ADMIN_PASSWORD` in `.env` at seed time (or the placeholder in `prisma/seed.ts`). **Set a real password before deploying.** Admin panel UI arrives in step 5.
