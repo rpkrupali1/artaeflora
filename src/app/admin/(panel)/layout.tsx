@@ -27,9 +27,15 @@ export default async function AdminLayout({
   return (
     <div className="flex min-h-screen">
       <aside className="flex w-56 shrink-0 flex-col border-r border-sage bg-white">
-        <Link href="/admin" className="flex items-center gap-2 px-5 py-5">
-          <Image src="/brand/flower-icon.png" alt="" width={34} height={28} className="h-7 w-auto" />
-          <span className="font-hand text-2xl text-leaf">Admin</span>
+        <Link href="/admin" className="flex flex-col items-start gap-1 px-5 py-5">
+          <Image
+            src="/brand/logo-full.png"
+            alt="ArtaeFlora"
+            width={111}
+            height={80}
+            className="h-16 w-auto"
+          />
+          <span className="font-hand text-lg text-charcoal/60">Shop admin</span>
         </Link>
         <nav className="flex-1 space-y-0.5 px-3">
           {nav.map((n) => (

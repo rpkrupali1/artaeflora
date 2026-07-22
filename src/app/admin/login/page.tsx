@@ -11,8 +11,15 @@ export default function AdminLoginPage() {
 
   return (
     <div className="mx-auto flex max-w-sm flex-col items-center px-4 py-20">
-      <Image src="/brand/flower-icon.png" alt="" width={67} height={54} className="h-14 w-auto" />
-      <h1 className="mt-4 font-script text-4xl text-leaf">Admin</h1>
+      <Image
+        src="/brand/logo-full.png"
+        alt="ArtaeFlora — unique handmades"
+        width={180}
+        height={130}
+        priority
+        className="h-32 w-auto"
+      />
+      <h1 className="mt-5 font-hand text-2xl text-charcoal/70">Shop admin</h1>
 
       <form action={formAction} className="mt-8 w-full space-y-4">
         <div>

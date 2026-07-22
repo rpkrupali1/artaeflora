@@ -80,7 +80,7 @@ export default function Header({ announcement }: { announcement?: string }) {
 
   return (
     <header className="sticky top-0 z-40 border-b border-sage bg-cream/95 backdrop-blur">
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-2">
+      <div className="flex items-center justify-between gap-4 px-4 py-2 lg:px-8">
         <Link href="/" className="-ml-3 flex items-center gap-2" onClick={close}>
           <Image
             src="/brand/logo-full.png"

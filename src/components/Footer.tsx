@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { site } from "@/lib/site";
 
@@ -22,11 +23,16 @@ const socials = [
 export default function Footer() {
   return (
     <footer className="mt-16 bg-olive text-cream">
-      <div className="mx-auto grid max-w-6xl gap-10 px-4 py-12 sm:grid-cols-2 lg:grid-cols-3">
-        <div>
-          <p className="font-script text-4xl">ArtaeFlora</p>
-          <p className="mt-3 max-w-xs text-sm leading-6 text-cream/90">{site.tagline}</p>
-          <p className="mt-2 text-sm text-cream/80">By {site.by} · {site.city}</p>
+      <div className="grid gap-10 px-4 py-12 sm:grid-cols-2 lg:grid-cols-3 lg:px-8">
+        <div className="flex w-fit flex-col items-center text-center">
+          <Image
+            src="/brand/logo-mini-cream.png"
+            alt="ArtaeFlora — unique handmades"
+            width={53}
+            height={80}
+            className="h-20 w-auto"
+          />
+          <p className="mt-4 max-w-xs text-sm leading-6 text-cream/90">{site.tagline}</p>
         </div>
 
         <div className="text-sm">
