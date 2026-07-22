@@ -206,7 +206,31 @@ sequenceDiagram
     P->>DB: Next visitor request re-fetches — listing appears/updates immediately
 ```
 
-## 6. Environments & Configuration
+## 6. Image & Asset Management
+
+Two kinds of images, with different lifecycles:
+
+**Brand assets** — the logo family. Change almost never, ship with the code.
+- `brand-assets/` (repo root) — originals and source material (drawn logo, business cards). Never served to visitors; kept for reference and future design work.
+- `public/brand/` — web-ready versions (transparent PNGs). Referenced by fixed paths in code (e.g. header logo).
+
+**Content images** — products, gallery, hero. Grow forever, owned by the admin panel, referenced **only by URL stored in the database** (never hardcoded in code):
+
+| | Development | Production |
+|---|---|---|
+| Storage | `public/uploads/{products,gallery,hero}/` (git-ignored) | Cloudinary folders `artaeflora/{products,gallery,hero}` |
+| Naming | upload API assigns collision-proof IDs (cuid), never the original filename | same |
+| Optimization | `next/image` resizes/serves WebP on the fly | Cloudinary `f_auto,q_auto` + `next/image` |
+| Alt text / captions | stored in DB (`ProductImage.alt`, `GalleryItem.caption`) | same |
+
+Rules that keep this scalable:
+1. **The database is the source of truth.** Pages never enumerate image folders; they render whatever URLs the DB rows hold. Swapping storage backends is a URL-prefix change, not a code rewrite.
+2. **Uploads are append-only with generated names** — no collisions, no accidental overwrites; deleting a product deletes its image rows (DB cascade) and the upload API removes the files.
+3. **One upload path** (`/api/upload`) decides the backend: Cloudinary when `CLOUDINARY_URL` is set, local disk otherwise. Nothing else in the app knows or cares.
+4. **Seed placeholders** (`public/products/*.png`) are repo-shipped stand-ins used only until real photos are uploaded; they get retired as products gain real images.
+5. **Scale path**: Cloudinary free tier comfortably covers hundreds of products (~25 GB bandwidth/month); beyond that it's a paid-tier bump or a move to S3 + CDN — either way only the upload API changes (rule 3).
+
+## 7. Environments & Configuration
 
 | Environment | Database | Images | Payments | URL |
 |---|---|---|---|---|

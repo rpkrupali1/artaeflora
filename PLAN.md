@@ -2,7 +2,7 @@
 
 ## Context
 
-Build a website from scratch for **ArtaeFlora** (Naperville, IL) — a handmade-gifts business selling candles and custom paintings, plus art classes and event workshops. Requirements come from [Business_and_Content_Questions.txt](Business_and_Content_Questions.txt) and follow-up answers:
+Build a website from scratch for **ArtaeFlora** (Naperville, IL) — a handmade-gifts business selling candles and custom paintings, plus art classes and event workshops. Requirements come from [Business_and_Content_Questions.txt](docs/Business_and_Content_Questions.txt) and follow-up answers:
 
 - **Products with a price** (e.g., candles) → real listings with cart + online checkout
 - **Paintings** → inquiry-only (custom work, gallery of reference photos)
@@ -22,7 +22,7 @@ Build a website from scratch for **ArtaeFlora** (Naperville, IL) — a handmade-
 - **Email**: artaeflora@gmail.com
 - **Phone**: 224-715-0463 · **WhatsApp Business**: +1 (313) 355-4447 (used for the WhatsApp button)
 - **Social**: [Instagram](https://www.instagram.com/artaeflora/) · [Pinterest](https://www.pinterest.com/artaeflora/) · Facebook (@artaeflora)
-- **Logos**: primary logo `logo.png` (hand-drawn flower wordmark); secondary candles-line logo (`images/2.png`)
+- **Logos**: originals in `brand-assets/` (hand-drawn flower wordmark + candles-line logo); web-ready transparent versions in `public/brand/`
 
 ## Brand & UI Design System (from `logo.png` + `images/1-4.png`)
 

@@ -23,7 +23,7 @@ export default function Header() {
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-2">
         <Link href="/" className="-ml-3 flex items-center gap-2" onClick={() => setOpen(false)}>
           <Image
-            src="/logo-full.png"
+            src="/brand/logo-full.png"
             alt="ArtaeFlora — unique handmades"
             width={133}
             height={96}
