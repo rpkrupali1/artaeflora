@@ -64,7 +64,12 @@ Build a website from scratch for **ArtaeFlora** (Naperville, IL) — a handmade-
 7. **Gallery** (`/gallery`) — portfolio of past work, filterable (candles / paintings / classes / events)
 8. **About & Contact** (`/about`, `/contact`) — story, Naperville location, WhatsApp/call/email, social links
 
-Cross-cutting: WhatsApp floating button on every page; SEO metadata + `LocalBusiness` JSON-LD (Naperville, IL); mobile-first responsive.
+Cross-cutting: WhatsApp floating button on every page (this is the chat channel for launch; a live-chat widget like Tawk.to is a post-launch decision); SEO metadata + `LocalBusiness` JSON-LD (Naperville, IL); mobile-first responsive.
+
+**Header utility icons** (right of nav, built in step 3):
+- **Search** — icon opens a search box; `/search?q=` queries products by name, description, and occasion tags
+- **User** — links to a sign-in page: admin login + "customer accounts coming soon" note (full customer accounts are Phase 2; launch uses guest checkout — Stripe collects the buyer's email)
+- **Cart** — icon with live item-count badge (cart logic lands in step 4)
 
 ## Admin Panel (`/admin`, login-protected)
 
@@ -98,7 +103,9 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) — system overview, data model (ERD), an
 
 ## Out of Scope (Phase 2, noted in README)
 
-Class online booking with seat caps + payment, PayPal, customer accounts, email notifications, reviews.
+- **Customer accounts / user management** — registration, login, password reset (requires an email service), order history. Launch uses guest checkout; the header user icon links to a "coming soon" sign-in page in the meantime.
+- **Live-chat widget** (e.g., Tawk.to) — WhatsApp is the chat channel at launch; revisit based on customer behavior.
+- Class online booking with seat caps + payment, PayPal, email notifications, reviews.
 
 ## Verification
 
