@@ -1,5 +1,6 @@
 "use server";
 
+import bcrypt from "bcryptjs";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
@@ -238,6 +239,46 @@ export async function saveSettings(formData: FormData): Promise<void> {
   }
   revalidatePath("/", "layout");
   revalidatePath("/admin/settings");
+}
+
+// ---------- Admin users -----------------------------------------------------
+
+export async function createAdminUser(formData: FormData): Promise<void> {
+  await requireAdmin();
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  const name = String(formData.get("name") ?? "").trim();
+  const password = String(formData.get("password") ?? "");
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || password.length < 10) return;
+  await db.adminUser.upsert({
+    where: { email },
+    update: {},
+    create: { email, name: name || null, passwordHash: await bcrypt.hash(password, 12) },
+  });
+  revalidatePath("/admin/users");
+}
+
+export async function updateAdminPassword(formData: FormData): Promise<void> {
+  await requireAdmin();
+  const id = String(formData.get("id") ?? "");
+  const password = String(formData.get("password") ?? "");
+  if (!id || password.length < 10) return;
+  await db.adminUser.update({
+    where: { id },
+    data: { passwordHash: await bcrypt.hash(password, 12) },
+  });
+  revalidatePath("/admin/users");
+}
+
+export async function deleteAdminUser(formData: FormData): Promise<void> {
+  const session = await requireAdmin();
+  const id = String(formData.get("id") ?? "");
+  if (!id) return;
+  const target = await db.adminUser.findUnique({ where: { id } });
+  const total = await db.adminUser.count();
+  // Never delete yourself or the last remaining admin.
+  if (!target || target.email === session.email || total <= 1) return;
+  await db.adminUser.delete({ where: { id } });
+  revalidatePath("/admin/users");
 }
 
 // ---------- Orders & inquiries --------------------------------------------

@@ -15,6 +15,7 @@ const nav = [
   { href: "/admin/gallery", label: "Gallery" },
   { href: "/admin/hero", label: "Hero slides" },
   { href: "/admin/settings", label: "Settings" },
+  { href: "/admin/users", label: "Admin users" },
 ];
 
 export default async function AdminLayout({

@@ -65,6 +65,14 @@ export async function POST(req: Request) {
   const shippingCents = shippingCentsFor(subtotalCents, fulfillment, shippingConfig);
 
   // ---- Mock mode (no Stripe account configured yet) ---------------------
+  // Development convenience ONLY. In production a missing key is a hard
+  // error — never silently give products away.
+  if (!process.env.STRIPE_SECRET_KEY && process.env.NODE_ENV === "production") {
+    return NextResponse.json(
+      { error: "Checkout is temporarily unavailable. Please order via WhatsApp." },
+      { status: 503 }
+    );
+  }
   if (!process.env.STRIPE_SECRET_KEY) {
     const order = await db.order.create({
       data: {

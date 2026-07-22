@@ -9,6 +9,28 @@ import { site } from "@/lib/site";
 
 export const dynamic = "force-dynamic";
 
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
+  const { slug } = await params;
+  const product = await db.product.findUnique({
+    where: { slug },
+    include: { images: { orderBy: { sortOrder: "asc" }, take: 1 } },
+  });
+  if (!product) return {};
+  return {
+    title: product.name,
+    description: product.description.slice(0, 160),
+    openGraph: {
+      title: product.name,
+      description: product.description.slice(0, 160),
+      images: product.images[0] ? [{ url: product.images[0].url }] : undefined,
+    },
+  };
+}
+
 export default async function ProductPage({
   params,
 }: {
@@ -36,8 +58,31 @@ export default async function ProductPage({
     `Hi ArtaeFlora! I'm interested in "${product.name}" — could you tell me more?`
   );
 
+  const productJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: product.name,
+    description: product.description,
+    image: product.images.map((i) => i.url),
+    brand: { "@type": "Brand", name: "ArtaeFlora" },
+    ...(product.priceCents !== null
+      ? {
+          offers: {
+            "@type": "Offer",
+            price: (product.priceCents / 100).toFixed(2),
+            priceCurrency: "USD",
+            availability: "https://schema.org/InStock",
+          },
+        }
+      : {}),
+  };
+
   return (
     <div className="mx-auto max-w-6xl px-4 py-10">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(productJsonLd) }}
+      />
       <nav className="text-sm text-charcoal/60">
         <Link href="/shop" className="hover:text-leaf">Shop</Link>
         {" / "}

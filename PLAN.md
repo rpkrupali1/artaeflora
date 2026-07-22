@@ -80,6 +80,7 @@ Cross-cutting: WhatsApp floating button on every page (this is the chat channel 
 - **Gallery** — upload/tag/delete portfolio images
 - **Hero slides** — upload image (JPEG/PNG/GIF) or short video (MP4/WebM) slides for the home hero; reorder, caption, activate/deactivate
 - **Site settings** — announcement-bar text (promo strip above the header) with show/hide toggle; extensible key-value store for future settings
+- **Admin users** — add/remove admin logins and change passwords (both owners get their own login); self-delete and last-admin-delete are blocked
 - **Orders** — list Stripe orders with status (paid/fulfilled), mark fulfilled
 - **Inquiries** — inbox of painting/event/class/general inquiries, mark handled
 

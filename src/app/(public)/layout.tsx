@@ -23,8 +23,30 @@ export default async function PublicLayout({
     // DB unreachable — fall back to the static default rather than erroring the whole site.
   }
 
+  const businessJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "LocalBusiness",
+    name: site.name,
+    description: `${site.descriptor} — handmade clay flowers, candles, custom paintings, art classes and event workshops.`,
+    email: site.email,
+    telephone: "+1-224-715-0463",
+    url: process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000",
+    image: "/og.png",
+    address: {
+      "@type": "PostalAddress",
+      addressLocality: "Naperville",
+      addressRegion: "IL",
+      addressCountry: "US",
+    },
+    sameAs: [site.instagram, site.pinterest, site.facebook],
+  };
+
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(businessJsonLd) }}
+      />
       <Header announcement={announcement} />
       <main className="flex-1">{children}</main>
       <Footer />
