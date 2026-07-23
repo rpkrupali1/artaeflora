@@ -7,7 +7,7 @@ Website for **ArtaeFlora** (Naperville, IL) — handmade clay flowers, candles, 
 📋 [PLAN.md](PLAN.md) — approved feature plan and design system
 🏗️ [ARCHITECTURE.md](ARCHITECTURE.md) — system diagrams, data model (ERD), request flows, image strategy
 🚀 [DEPLOYMENT.md](DEPLOYMENT.md) — owner-executed launch guide: GitHub → Neon prod → Cloudinary → Stripe → Vercel → domain → go-live checklist
-📜 [public/openapi.yaml](public/openapi.yaml) — OpenAPI 3 spec for the three HTTP endpoints (checkout, Stripe webhook, upload). Served live and versionless with every deployment: raw spec at `/openapi.yaml`, rendered docs at **`/api-docs`** (noindexed). Lint after edits: `npx @redocly/cli lint public/openapi.yaml`
+📜 [public/openapi.yaml](public/openapi.yaml) — OpenAPI 3 spec: public catalog reads (`/api/products`, `/api/products/{slug}`, `/api/categories`), checkout, Stripe webhook, and the admin API (products/categories GET+POST, orders, inquiries, upload — session-cookie auth). Interactive **Swagger UI at `/api-docs`** ("Try it out" sends real requests; sign in at `/admin` first for admin endpoints). Lint after edits: `npx @redocly/cli lint public/openapi.yaml`
 
 ## Tech Stack
 

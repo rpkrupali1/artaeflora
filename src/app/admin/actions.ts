@@ -5,16 +5,9 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { slugify } from "@/lib/slug";
 
 // Every action re-checks the session — hidden UI is never the only guard.
-
-function slugify(text: string): string {
-  return text
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 80);
-}
 
 function dollarsToCents(value: FormDataEntryValue | null): number | null {
   const s = String(value ?? "").trim().replace(/^\$/, "");

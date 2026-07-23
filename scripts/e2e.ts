@@ -140,6 +140,56 @@ async function main() {
       r.status !== 200 ? `status ${r.status}` : "");
   }
 
+  console.log("— REST API: catalog (public) —");
+  const prodList = await fetch(`${BASE}/api/products`);
+  const prodData = await prodList.json();
+  check("GET /api/products", prodList.status === 200 && prodData.count >= 9);
+  const filtered = await (await fetch(`${BASE}/api/products?category=candles&occasion=Diwali`)).json();
+  check("products filter by category+occasion",
+    filtered.products?.every((p: { category: { parent: { slug: string } | null; slug: string } }) =>
+      (p.category.parent?.slug ?? p.category.slug) === "candles"));
+  const one = await fetch(`${BASE}/api/products/lavender-soy-candle`);
+  const oneData = await one.json();
+  check("GET /api/products/{slug}", one.status === 200 && oneData.priceCents === 1800);
+  check("product 404 for unknown slug", (await fetch(`${BASE}/api/products/nope`)).status === 404);
+  const cats = await (await fetch(`${BASE}/api/categories`)).json();
+  const candlesNode = cats.categories?.find((c: { slug: string }) => c.slug === "candles");
+  check("GET /api/categories aggregates subcategory counts", candlesNode?.productCount === 3);
+
+  console.log("— REST API: admin —");
+  check("admin products requires auth", (await fetch(`${BASE}/api/admin/products`)).status === 401);
+  const adminProds = await (await fetch(`${BASE}/api/admin/products`, { headers: { cookie } })).json();
+  check("GET /api/admin/products (authed)", adminProds.count === 10);
+  const savePost = await fetch(`${BASE}/api/admin/products`, {
+    method: "POST",
+    headers: { cookie, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      name: "E2E API Test Candle",
+      description: "Created by the e2e suite via the admin API.",
+      categorySlug: "scented-candles",
+      priceCents: 999,
+      occasions: ["Birthdays"],
+      active: false,
+    }),
+  });
+  const saved = await savePost.json();
+  check("POST /api/admin/products creates", savePost.status === 201 && Boolean(saved.id));
+  const hiddenFromPublic = await (await fetch(`${BASE}/api/products?q=E2E API Test`)).json();
+  check("inactive product hidden from public API", hiddenFromPublic.count === 0);
+  const update = await fetch(`${BASE}/api/admin/products`, {
+    method: "POST",
+    headers: { cookie, "Content-Type": "application/json" },
+    body: JSON.stringify({ id: saved.id, priceCents: 1099 }),
+  });
+  check("POST /api/admin/products updates", update.status === 200);
+  const afterUpdate = await db.product.findUnique({ where: { id: saved.id } });
+  check("update persisted", afterUpdate?.priceCents === 1099);
+  await db.product.delete({ where: { id: saved.id } });
+  const adminOrders = await fetch(`${BASE}/api/admin/orders`, { headers: { cookie } });
+  check("GET /api/admin/orders (authed)", adminOrders.status === 200);
+  const adminInqs = await fetch(`${BASE}/api/admin/inquiries?handled=false`, { headers: { cookie } });
+  check("GET /api/admin/inquiries (authed)", adminInqs.status === 200);
+
   console.log("— Upload API —");
   const noAuth = await fetch(`${BASE}/api/upload`, { method: "POST", body: new FormData() });
   check("upload rejects unauthenticated", noAuth.status === 401);

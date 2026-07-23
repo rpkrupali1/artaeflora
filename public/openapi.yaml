@@ -3,18 +3,16 @@ info:
   title: ArtaeFlora HTTP API
   version: 1.0.0
   description: |
-    The three real HTTP endpoints of artaeflora.com.
+    HTTP API of artaeflora.com.
 
-    Everything else in the app is intentionally NOT a REST API:
-    - **Reads** (shop, products, gallery, classes) happen inside Next.js server
-      components — SQL runs server-side, the browser receives HTML.
-    - **Form mutations** (inquiries, all admin CRUD) are Next.js server actions —
-      framework-generated, CSRF-protected POST endpoints whose IDs change per
-      build. They are internal wiring, not a public contract.
-
-    The endpoints below exist because their callers are not our own React code:
-    Stripe's servers (webhook), a redirect flow (checkout), and multipart
-    uploads (admin images).
+    - **Catalog** endpoints are public reads mirroring exactly what the shop
+      shows (active products only).
+    - **Admin** endpoints require the `af_admin` session cookie — sign in at
+      `/admin` in this browser first, then "Try it out" sends the cookie
+      automatically.
+    - The website's own pages do NOT use this API — they render server-side.
+      Website form mutations (inquiries, admin panel forms) are Next.js server
+      actions, which are internal wiring, not part of this contract.
 servers:
   - url: /
     description: This host (wherever these docs are served from)
@@ -24,6 +22,8 @@ servers:
     description: Production
 
 tags:
+  - name: catalog
+    description: Public product/category reads (active products only)
   - name: checkout
     description: Cart to Stripe Checkout session
   - name: webhooks
@@ -32,6 +32,240 @@ tags:
     description: Requires the admin session cookie
 
 paths:
+  /api/products:
+    get:
+      tags: [catalog]
+      summary: List active products
+      operationId: listProducts
+      security: []
+      parameters:
+        - name: category
+          in: query
+          schema: { type: string }
+          description: Category slug (parent categories include their subcategories).
+          example: candles
+        - name: occasion
+          in: query
+          schema: { type: string }
+          example: Diwali
+        - name: q
+          in: query
+          schema: { type: string }
+          description: Free-text search over name, description, and occasions.
+      responses:
+        "200":
+          description: Matching products.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count: { type: integer }
+                  products:
+                    type: array
+                    items: { $ref: "#/components/schemas/Product" }
+        "404":
+          description: Unknown category slug.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/products/{slug}:
+    get:
+      tags: [catalog]
+      summary: Get one product by slug
+      operationId: getProduct
+      security: []
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+          example: lavender-soy-candle
+      responses:
+        "200":
+          description: The product.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Product" }
+        "404":
+          description: Not found or not active.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/categories:
+    get:
+      tags: [catalog]
+      summary: Category tree with product counts
+      operationId: listCategories
+      security: []
+      responses:
+        "200":
+          description: Top-level categories with nested subcategories.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  categories:
+                    type: array
+                    items: { $ref: "#/components/schemas/CategoryNode" }
+
+  /api/admin/products:
+    get:
+      tags: [admin]
+      summary: List ALL products (including hidden)
+      operationId: adminListProducts
+      security: [{ adminCookie: [] }]
+      responses:
+        "200":
+          description: Every product with admin fields (active flag, ids).
+        "401":
+          description: Not signed in.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+    post:
+      tags: [admin]
+      summary: Create or update a product
+      description: >-
+        Include `id` to update an existing product; omit it to create.
+        Category can be given as `categoryId` or `categorySlug`.
+        On update, only the fields you send change; sending `images`
+        replaces the full image list.
+      operationId: adminSaveProduct
+      security: [{ adminCookie: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AdminProductInput" }
+            example:
+              name: Marigold Garland Candle
+              description: Hand-poured candle wrapped in a clay marigold garland.
+              categorySlug: festive-candles
+              priceCents: 2200
+              occasions: [Diwali, Weddings]
+              featured: false
+              active: true
+              images: [{ url: /products/candles.png }]
+      responses:
+        "201":
+          description: Created.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SaveResult" }
+        "200":
+          description: Updated.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SaveResult" }
+        "400":
+          description: Validation problem (missing fields, bad price, unknown category).
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "401":
+          description: Not signed in.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "404":
+          description: Update requested for an id that doesn't exist.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/admin/categories:
+    get:
+      tags: [admin]
+      summary: Flat category list with ids
+      operationId: adminListCategories
+      security: [{ adminCookie: [] }]
+      responses:
+        "200":
+          description: All categories with parent info and product counts.
+        "401":
+          description: Not signed in.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+    post:
+      tags: [admin]
+      summary: Create or update a category
+      description: Include `id` to update; omit to create.
+      operationId: adminSaveCategory
+      security: [{ adminCookie: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id: { type: string, description: Present = update }
+                name: { type: string }
+                slug: { type: string }
+                parentId: { type: string, nullable: true }
+                sortOrder: { type: integer }
+            example: { name: Wall Art, sortOrder: 50 }
+      responses:
+        "201": { description: Created. }
+        "200": { description: Updated. }
+        "400":
+          description: Missing name on create.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "401":
+          description: Not signed in.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "404":
+          description: Unknown id on update.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/admin/orders:
+    get:
+      tags: [admin]
+      summary: List all orders with items
+      operationId: adminListOrders
+      security: [{ adminCookie: [] }]
+      responses:
+        "200":
+          description: Orders, newest first, including line items, customer contact, and shipping address.
+        "401":
+          description: Not signed in.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/admin/inquiries:
+    get:
+      tags: [admin]
+      summary: List inquiries
+      operationId: adminListInquiries
+      security: [{ adminCookie: [] }]
+      parameters:
+        - name: type
+          in: query
+          schema: { type: string, enum: [PAINTING, EVENT, CLASS, GENERAL] }
+        - name: handled
+          in: query
+          schema: { type: boolean }
+      responses:
+        "200":
+          description: Matching inquiries, newest first.
+        "401":
+          description: Not signed in.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
   /api/checkout:
     post:
       tags: [checkout]
@@ -253,3 +487,91 @@ components:
       properties:
         error:
           type: string
+    Product:
+      type: object
+      properties:
+        id: { type: string }
+        slug: { type: string }
+        name: { type: string }
+        description: { type: string }
+        priceCents:
+          type: integer
+          nullable: true
+          description: Null for inquiry-only products.
+        inquiryOnly: { type: boolean }
+        occasions:
+          type: array
+          items: { type: string }
+        featured: { type: boolean }
+        category: { $ref: "#/components/schemas/CategoryRef" }
+        images:
+          type: array
+          items:
+            type: object
+            properties:
+              url: { type: string }
+              alt: { type: string, nullable: true }
+    CategoryRef:
+      type: object
+      properties:
+        id: { type: string }
+        slug: { type: string }
+        name: { type: string }
+        parent:
+          type: object
+          nullable: true
+          properties:
+            id: { type: string }
+            slug: { type: string }
+            name: { type: string }
+    CategoryNode:
+      type: object
+      properties:
+        id: { type: string }
+        slug: { type: string }
+        name: { type: string }
+        productCount: { type: integer }
+        subcategories:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string }
+              slug: { type: string }
+              name: { type: string }
+              productCount: { type: integer }
+    AdminProductInput:
+      type: object
+      properties:
+        id: { type: string, description: Present = update that product }
+        name: { type: string }
+        slug: { type: string, description: Optional — generated from name }
+        description: { type: string }
+        priceCents:
+          type: integer
+          nullable: true
+          description: Cents (1800 = $18.00). Ignored when inquiryOnly is true.
+        inquiryOnly: { type: boolean, default: false }
+        occasions:
+          type: array
+          items: { type: string }
+        featured: { type: boolean }
+        active: { type: boolean }
+        categoryId: { type: string }
+        categorySlug: { type: string, description: Alternative to categoryId }
+        images:
+          type: array
+          description: Full replacement list; first image is the main one.
+          items:
+            type: object
+            required: [url]
+            properties:
+              url: { type: string }
+              alt: { type: string }
+    SaveResult:
+      type: object
+      properties:
+        id: { type: string }
+        slug: { type: string }
+        created: { type: boolean }
+        updated: { type: boolean }
