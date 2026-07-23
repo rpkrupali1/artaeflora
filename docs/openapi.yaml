@@ -1,0 +1,253 @@
+openapi: 3.0.3
+info:
+  title: ArtaeFlora HTTP API
+  version: 1.0.0
+  description: |
+    The three real HTTP endpoints of artaeflora.com.
+
+    Everything else in the app is intentionally NOT a REST API:
+    - **Reads** (shop, products, gallery, classes) happen inside Next.js server
+      components — SQL runs server-side, the browser receives HTML.
+    - **Form mutations** (inquiries, all admin CRUD) are Next.js server actions —
+      framework-generated, CSRF-protected POST endpoints whose IDs change per
+      build. They are internal wiring, not a public contract.
+
+    The endpoints below exist because their callers are not our own React code:
+    Stripe's servers (webhook), a redirect flow (checkout), and multipart
+    uploads (admin images).
+servers:
+  - url: http://localhost:3000
+    description: Local development
+  - url: https://artaeflora.com
+    description: Production
+
+tags:
+  - name: checkout
+    description: Cart to Stripe Checkout session
+  - name: webhooks
+    description: Inbound calls from Stripe
+  - name: admin
+    description: Requires the admin session cookie
+
+paths:
+  /api/checkout:
+    post:
+      tags: [checkout]
+      summary: Create a checkout for the current cart
+      description: |
+        Validates every cart line against the database (product must exist, be
+        active, not inquiry-only, and have a price — client-sent prices are
+        never trusted) and computes shipping from the store settings.
+
+        Behavior depends on configuration:
+        - `STRIPE_SECRET_KEY` set → creates a Stripe Checkout Session and
+          returns its hosted-page URL.
+        - Key missing in **development** → mock mode: records the order
+          immediately and returns a local success URL.
+        - Key missing in **production** → 503 (never gives products away).
+      operationId: createCheckout
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CheckoutRequest"
+            example:
+              items:
+                - productId: cml8x2f0q0003abcd
+                  quantity: 2
+              fulfillment: SHIPPING
+      responses:
+        "200":
+          description: Redirect target for the buyer's browser.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CheckoutResponse"
+        "400":
+          description: Malformed body or empty cart.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "409":
+          description: >-
+            One or more items are unknown, inactive, inquiry-only, or
+            unpriced — the client should refresh its cart.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "503":
+          description: Production instance without Stripe configured.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/webhooks/stripe:
+    post:
+      tags: [webhooks]
+      summary: Stripe event receiver
+      description: |
+        Called by Stripe, never by browsers. The raw body is verified against
+        `Stripe-Signature` using the webhook signing secret. On
+        `checkout.session.completed` an Order (+ items, customer contact,
+        shipping address, shipping cost) is recorded. Idempotent: replayed
+        events for an already-recorded session are acknowledged and ignored.
+      operationId: stripeWebhook
+      security: []
+      parameters:
+        - name: Stripe-Signature
+          in: header
+          required: true
+          schema:
+            type: string
+          description: HMAC signature set by Stripe.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Raw Stripe event payload (verified before parsing).
+      responses:
+        "200":
+          description: Event acknowledged.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  received:
+                    type: boolean
+        "400":
+          description: Missing or invalid signature.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "503":
+          description: Stripe env vars not configured.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/upload:
+    post:
+      tags: [admin]
+      summary: Upload a product/gallery/hero media file
+      description: |
+        Admin-only (session cookie). Stores to Cloudinary when
+        `CLOUDINARY_URL` is set, otherwise to `public/uploads/<folder>/` with a
+        collision-proof generated filename. Video is accepted only for the
+        `hero` folder. Limits: images 8 MB, video 60 MB.
+      operationId: uploadMedia
+      security:
+        - adminCookie: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file, folder]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: JPEG, PNG, WebP, GIF, MP4, or WebM.
+                folder:
+                  type: string
+                  enum: [products, gallery, hero]
+      responses:
+        "200":
+          description: Stored; use the returned URL in the entity being saved.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UploadResponse"
+        "400":
+          description: No file, invalid folder, or video outside the hero folder.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Missing or invalid admin session.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "413":
+          description: File exceeds the size limit.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "415":
+          description: Unsupported media type.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+components:
+  securitySchemes:
+    adminCookie:
+      type: apiKey
+      in: cookie
+      name: af_admin
+      description: >-
+        HMAC-SHA256-signed session token set by the admin login form
+        (7-day expiry). Obtainable only via /admin/login.
+  schemas:
+    CheckoutRequest:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            required: [productId, quantity]
+            properties:
+              productId:
+                type: string
+                description: Product id (cuid) from the catalog.
+              quantity:
+                type: integer
+                minimum: 1
+                maximum: 99
+        fulfillment:
+          type: string
+          enum: [PICKUP, SHIPPING]
+          default: PICKUP
+    CheckoutResponse:
+      type: object
+      required: [url]
+      properties:
+        url:
+          type: string
+          description: >-
+            Absolute Stripe-hosted payment page URL, or a site-relative
+            success path in development mock mode.
+    UploadResponse:
+      type: object
+      required: [url, mediaType]
+      properties:
+        url:
+          type: string
+          example: /uploads/products/6f0d0f6e-....jpg
+        mediaType:
+          type: string
+          enum: [IMAGE, VIDEO]
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string

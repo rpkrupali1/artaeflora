@@ -7,6 +7,7 @@ Website for **ArtaeFlora** (Naperville, IL) — handmade clay flowers, candles, 
 📋 [PLAN.md](PLAN.md) — approved feature plan and design system
 🏗️ [ARCHITECTURE.md](ARCHITECTURE.md) — system diagrams, data model (ERD), request flows, image strategy
 🚀 [DEPLOYMENT.md](DEPLOYMENT.md) — owner-executed launch guide: GitHub → Neon prod → Cloudinary → Stripe → Vercel → domain → go-live checklist
+📜 [docs/openapi.yaml](docs/openapi.yaml) — OpenAPI 3 spec for the three HTTP endpoints (checkout, Stripe webhook, upload); view with `npx @redocly/cli preview-docs docs/openapi.yaml`
 
 ## Tech Stack
 

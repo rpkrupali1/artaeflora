@@ -32,25 +32,30 @@ Hosting platforms deploy from a git repo.
 
 ## Phase 2 — Production database (Neon)
 
-Your current Neon database is the dev playground. Give production its own:
+Heads-up: Neon names a new project's default branch **`production`** — and all
+development so far (sample products, test orders) has happened on it. So the
+job is the reverse of what you might expect: move *development* onto its own
+branch, then wipe `production` clean for real use.
 
-1. In the [Neon console](https://console.neon.tech): **Branches → New branch**
-   from `main`, name it `production` (a branch is a full copy with its own
-   connection string) — or create a second project if you prefer hard separation
-2. Copy the production connection string
-3. Create the schema there — temporarily point `.env`'s `DATABASE_URL` at the
-   production string, then:
+1. In the [Neon console](https://console.neon.tech): **Branches → New branch**,
+   name `development`, parent `production` (instant copy — sample data included)
+2. Put the **development** branch's connection string into your local `.env`
+   `DATABASE_URL`. Restart the dev server; `npm run db:query` should show the
+   familiar sample products. All local work now happens here.
+3. When ready to deploy, wipe and rebuild the `production` branch — temporarily
+   point `.env`'s `DATABASE_URL` at the **production** string, then:
    ```powershell
    npm run db:push:http
    ```
-4. **Do not run `db:seed`** (you don't want sample products in production).
+   (drops the sample data, creates a fresh empty schema — intended!)
+4. **Do not run `db:seed`** (no sample products in production).
    Create just the admin login:
    ```powershell
    $env:NEW_ADMIN_PASSWORD="a-long-strong-password-you-store-in-a-password-manager"
    npx tsx --env-file=.env scripts/set-admin-password.ts
    ```
-5. Point `.env` back at your dev branch string. Keep the production string
-   for phase 5's environment variables.
+5. Point `.env` back at the `development` string. The production string is
+   used in exactly one more place: phase 5's environment variables.
 
 ## Phase 3 — Cloudinary (image/video hosting)
 
@@ -88,6 +93,19 @@ dev-only by design).
 
 Recommendation: **Vercel** for the launch experience; budget the Pro upgrade
 as part of "the business is working."
+
+**What about AWS / Google Cloud?** Not cheaper in any way that matters at
+launch: today's comparison is $0 (Vercel/Render free) vs ~$0 (cloud free
+tiers), and the hyperscalers charge you in *time* instead — Dockerfile, build
+pipeline, CDN/TLS/domain wiring, cold-start tuning, and self-hosting the
+Next.js features (image optimization, ISR) that Vercel runs out of the box.
+The trade-off only flips if the Vercel Pro fee ($20/mo) starts to rankle:
+at that point **GCP Cloud Run** is the right alternative (~$3/mo, scales to
+zero). Nothing in this codebase is Vercel-specific — standard Next.js + Neon
+over HTTPS + Cloudinary — so that future migration is a Dockerfile and a
+build pipeline, not a rewrite. AWS EC2/Lightsail (~$4/mo) is not recommended:
+it makes you the sysadmin (patches, TLS renewal, deploys) to save three
+dollars.
 
 Vercel steps:
 1. Sign up at [vercel.com](https://vercel.com) with your GitHub account
