@@ -54,9 +54,25 @@ export async function POST(req: Request) {
   });
 
   if (lines.length !== requested.length) {
+    // Diagnose WHY each item failed validation — for the logs, not the shopper.
+    const badIds = requested
+      .map((r) => r.productId)
+      .filter((id) => !lines.some((l) => l.product.id === id));
+    const found = await db.product.findMany({
+      where: { id: { in: badIds } },
+      select: { id: true, name: true, active: true, inquiryOnly: true, priceCents: true },
+    });
+    const reasons = badIds.map((id) => {
+      const p = found.find((f) => f.id === id);
+      if (!p) return { productId: id, reason: "not_found" };
+      if (!p.active) return { productId: id, name: p.name, reason: "inactive_hidden_from_shop" };
+      if (p.inquiryOnly) return { productId: id, name: p.name, reason: "inquiry_only_not_purchasable" };
+      if (p.priceCents === null) return { productId: id, name: p.name, reason: "no_price_set" };
+      return { productId: id, name: p.name, reason: "unknown" };
+    });
     log.warn("checkout.rejected_stale_items", {
-      requested: requested.map((r) => r.productId),
-      valid: lines.map((l) => l.product.id),
+      rejected: reasons,
+      validCount: lines.length,
     });
     return NextResponse.json(
       { error: "Some items are no longer available — please refresh your cart." },

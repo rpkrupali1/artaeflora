@@ -40,9 +40,18 @@ function emit(level: Level, context: Record<string, unknown>, event: string, dat
     for (const [k, v] of Object.entries(data)) payload[k] = serialize(v);
   }
 
+  // Dev: color the level tag so WARN/ERROR jump out between framework lines.
+  const COLORS: Record<Level, string> = {
+    debug: "\x1b[90m", // gray
+    info: "\x1b[36m", // cyan
+    warn: "\x1b[33;1m", // bold yellow
+    error: "\x1b[31;1m", // bold red
+  };
+  const RESET = "\x1b[0m";
+
   const line = json
     ? JSON.stringify(payload)
-    : `[${payload.time}] ${level.toUpperCase().padEnd(5)} ${event}${
+    : `[${payload.time}] ${COLORS[level]}${level.toUpperCase().padEnd(5)}${RESET} ${COLORS[level]}${event}${RESET}${
         Object.keys({ ...context, ...data }).length
           ? " " + JSON.stringify({ ...context, ...(data && Object.fromEntries(Object.entries(data).map(([k, v]) => [k, serialize(v)]))) })
           : ""
