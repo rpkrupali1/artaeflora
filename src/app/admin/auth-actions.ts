@@ -5,6 +5,9 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createSessionToken, SESSION_COOKIE } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { logger } from "@/lib/logger";
+
+const log = logger.child({ scope: "auth" });
 
 export type LoginState = { error?: string };
 
@@ -19,8 +22,11 @@ export async function login(_prev: LoginState, formData: FormData): Promise<Logi
   const valid = await bcrypt.compare(password, hash);
 
   if (!admin || !valid) {
+    // Security signal: repeated occurrences = someone guessing at the login.
+    log.warn("auth.login_failed", { email });
     return { error: "Invalid email or password." };
   }
+  log.info("auth.login_succeeded", { email });
 
   const token = await createSessionToken(admin.email);
   const store = await cookies();

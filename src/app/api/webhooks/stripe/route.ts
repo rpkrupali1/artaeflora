@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { db } from "@/lib/db";
+import { logger } from "@/lib/logger";
+
+const log = logger.child({ scope: "stripe-webhook" });
 
 // POST /api/webhooks/stripe — called by Stripe's servers after payment.
 // Signature-verified; idempotent (stripeSessionId is unique, replays are ignored).
@@ -21,7 +24,8 @@ export async function POST(req: Request) {
   let event: Stripe.Event;
   try {
     event = stripe.webhooks.constructEvent(await req.text(), signature, webhookSecret);
-  } catch {
+  } catch (err) {
+    log.error("webhook.signature_invalid", { err });
     return NextResponse.json({ error: "Invalid signature." }, { status: 400 });
   }
 
@@ -31,7 +35,10 @@ export async function POST(req: Request) {
     const existing = await db.order.findUnique({
       where: { stripeSessionId: session.id },
     });
-    if (existing) return NextResponse.json({ received: true });
+    if (existing) {
+      log.info("webhook.duplicate_ignored", { sessionId: session.id, orderId: existing.id });
+      return NextResponse.json({ received: true });
+    }
 
     const requested: { i: string; q: number }[] = JSON.parse(
       session.metadata?.items ?? "[]"
@@ -58,7 +65,7 @@ export async function POST(req: Request) {
           .join("\n")
       : null;
 
-    await db.order.create({
+    const created = await db.order.create({
       data: {
         stripeSessionId: session.id,
         customerName: session.customer_details?.name ?? null,
@@ -83,6 +90,12 @@ export async function POST(req: Request) {
           }),
         },
       },
+    });
+    log.info("webhook.order_recorded", {
+      orderId: created.id,
+      sessionId: session.id,
+      totalCents: created.totalCents,
+      fulfillment: created.fulfillment,
     });
   }
 

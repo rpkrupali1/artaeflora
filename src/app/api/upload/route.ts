@@ -3,6 +3,9 @@ import path from "node:path";
 import { NextResponse } from "next/server";
 import { v2 as cloudinary } from "cloudinary";
 import { getAdminSession } from "@/lib/auth";
+import { logger } from "@/lib/logger";
+
+const log = logger.child({ scope: "upload" });
 
 // POST /api/upload  (multipart: file, folder) — admin only.
 // One upload path for the whole app: Cloudinary when CLOUDINARY_URL is set
@@ -16,6 +19,7 @@ const MAX_VIDEO_BYTES = 60 * 1024 * 1024;
 
 export async function POST(req: Request) {
   if (!(await getAdminSession())) {
+    log.warn("upload.unauthorized_attempt");
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -63,6 +67,7 @@ export async function POST(req: Request) {
         )
         .end(bytes);
     });
+    log.info("upload.stored_cloudinary", { folder, bytes: file.size, video: isVideo });
     return NextResponse.json({ url: uploaded.secure_url, mediaType: isVideo ? "VIDEO" : "IMAGE" });
   }
 
@@ -72,6 +77,7 @@ export async function POST(req: Request) {
   const dir = path.join(process.cwd(), "public", "uploads", folder);
   await mkdir(dir, { recursive: true });
   await writeFile(path.join(dir, filename), bytes);
+  log.info("upload.stored_local", { folder, bytes: file.size, filename });
   return NextResponse.json({
     url: `/uploads/${folder}/${filename}`,
     mediaType: isVideo ? "VIDEO" : "IMAGE",

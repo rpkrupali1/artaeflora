@@ -7,7 +7,7 @@ Website for **ArtaeFlora** (Naperville, IL) — handmade clay flowers, candles, 
 📋 [PLAN.md](PLAN.md) — approved feature plan and design system
 🏗️ [ARCHITECTURE.md](ARCHITECTURE.md) — system diagrams, data model (ERD), request flows, image strategy
 🚀 [DEPLOYMENT.md](DEPLOYMENT.md) — owner-executed launch guide: GitHub → Neon prod → Cloudinary → Stripe → Vercel → domain → go-live checklist
-📜 [docs/openapi.yaml](docs/openapi.yaml) — OpenAPI 3 spec for the three HTTP endpoints (checkout, Stripe webhook, upload); view with `npx @redocly/cli preview-docs docs/openapi.yaml`
+📜 [public/openapi.yaml](public/openapi.yaml) — OpenAPI 3 spec for the three HTTP endpoints (checkout, Stripe webhook, upload). Served live and versionless with every deployment: raw spec at `/openapi.yaml`, rendered docs at **`/api-docs`** (noindexed). Lint after edits: `npx @redocly/cli lint public/openapi.yaml`
 
 ## Tech Stack
 
@@ -81,6 +81,25 @@ src/lib/             db.ts (Prisma + Neon adapter), site.ts (business facts: tag
 - [ ] **Step 7 — Deployment guide**: Neon prod branch, Cloudinary, Stripe live keys, Vercel/Render, artaeflora.com domain
 
 **Phase 2 (post-launch):** customer accounts + order history, class online booking with seat caps, PayPal, live-chat widget, email notifications, reviews.
+
+## Logging & Troubleshooting
+
+Structured logging via [`src/lib/logger.ts`](src/lib/logger.ts) (zero-dep):
+human-readable lines in dev, one JSON object per line in production so host
+log viewers can filter them. Set `LOG_LEVEL=debug|info|warn|error` (default `info`).
+
+- **Events use stable dot-names** you can grep/filter: `checkout.stripe_session_created`,
+  `checkout.rejected_stale_items`, `webhook.order_recorded`, `webhook.signature_invalid`,
+  `upload.stored_cloudinary`, `auth.login_failed`, `inquiry.created`, `server.started`.
+- **Uncaught server errors** are captured centrally by `src/instrumentation.ts`
+  (`onRequestError`) as `server.unhandled_error` with method, path, and route —
+  nothing fails silently even without a try/catch.
+- **Where to look**: dev → the `npm run dev` terminal. Production (Vercel) →
+  project → **Logs** tab (filter e.g. `webhook.signature_invalid`). For retention
+  beyond Vercel's window, add a Log Drain (Axiom/Better Stack have free tiers) — no code change.
+- **First things to check when something's wrong in prod**: `webhook.*` events
+  (payments recorded?), `checkout.*` warns (carts failing validation?),
+  repeated `auth.login_failed` (someone guessing the admin password).
 
 ## Admin
 

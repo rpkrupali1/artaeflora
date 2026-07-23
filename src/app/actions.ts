@@ -1,6 +1,9 @@
 "use server";
 
 import { db } from "@/lib/db";
+import { logger } from "@/lib/logger";
+
+const log = logger.child({ scope: "inquiries" });
 
 export type InquiryState = {
   ok: boolean;
@@ -36,7 +39,7 @@ export async function submitInquiry(
     .map(([k, v]) => `${k.replace("detail_", "")}: ${String(v).trim()}`)
     .join(" | ");
 
-  await db.inquiry.create({
+  const inquiry = await db.inquiry.create({
     data: {
       type,
       name,
@@ -46,6 +49,7 @@ export async function submitInquiry(
       details: details || null,
     },
   });
+  log.info("inquiry.created", { inquiryId: inquiry.id, type });
 
   return { ok: true };
 }

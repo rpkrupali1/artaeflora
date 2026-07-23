@@ -16,6 +16,8 @@ info:
     Stripe's servers (webhook), a redirect flow (checkout), and multipart
     uploads (admin images).
 servers:
+  - url: /
+    description: This host (wherever these docs are served from)
   - url: http://localhost:3000
     description: Local development
   - url: https://artaeflora.com

@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { db } from "@/lib/db";
+import { logger } from "@/lib/logger";
 import { getShippingConfig, shippingCentsFor } from "@/lib/shipping";
+
+const log = logger.child({ scope: "checkout" });
 
 // POST /api/checkout
 // Body: { items: [{ productId, quantity }], fulfillment: "PICKUP" | "SHIPPING" }
@@ -51,6 +54,10 @@ export async function POST(req: Request) {
   });
 
   if (lines.length !== requested.length) {
+    log.warn("checkout.rejected_stale_items", {
+      requested: requested.map((r) => r.productId),
+      valid: lines.map((l) => l.product.id),
+    });
     return NextResponse.json(
       { error: "Some items are no longer available — please refresh your cart." },
       { status: 409 }
@@ -68,6 +75,7 @@ export async function POST(req: Request) {
   // Development convenience ONLY. In production a missing key is a hard
   // error — never silently give products away.
   if (!process.env.STRIPE_SECRET_KEY && process.env.NODE_ENV === "production") {
+    log.error("checkout.stripe_not_configured_in_production");
     return NextResponse.json(
       { error: "Checkout is temporarily unavailable. Please order via WhatsApp." },
       { status: 503 }
@@ -91,6 +99,12 @@ export async function POST(req: Request) {
           })),
         },
       },
+    });
+    log.info("checkout.mock_order_created", {
+      orderId: order.id,
+      totalCents: subtotalCents + shippingCents,
+      items: lines.length,
+      fulfillment,
     });
     return NextResponse.json({ url: `/checkout/success?mock=1&order=${order.id}` });
   }
@@ -137,5 +151,12 @@ export async function POST(req: Request) {
     cancel_url: `${origin}/cart`,
   });
 
+  log.info("checkout.stripe_session_created", {
+    sessionId: session.id,
+    subtotalCents,
+    shippingCents,
+    items: lines.length,
+    fulfillment,
+  });
   return NextResponse.json({ url: session.url });
 }
